@@ -20,16 +20,6 @@ if ! (type bgnotify_formatted | grep -q 'function'); then ## allow custom functi
   }
 fi
 
-currentWindowId () {
-  if hash osascript 2>/dev/null; then #osx
-    osascript -e 'tell application (path to frontmost application as text) to id of front window' 2&> /dev/null || echo "0"
-  elif (hash notify-send 2>/dev/null || hash kdialog 2>/dev/null); then #ubuntu!
-    xprop -root 2> /dev/null | awk '/NET_ACTIVE_WINDOW/{print $5;exit} END{exit !$5}' || echo "0"
-  else
-    echo $EPOCHSECONDS #fallback for windows
-  fi
-}
-
 bgnotify () { ## args: (title, subtitle)
   if hash terminal-notifier 2>/dev/null; then #osx
     [[ "$TERM_PROGRAM" == 'iTerm.app' ]] && term_id='com.googlecode.iterm2';
@@ -54,7 +44,6 @@ bgnotify () { ## args: (title, subtitle)
 bgnotify_begin() {
   bgnotify_timestamp=$EPOCHSECONDS
   bgnotify_lastcmd="$1"
-  bgnotify_windowid=$(currentWindowId)
 }
 
 bgnotify_end() {
@@ -62,10 +51,8 @@ bgnotify_end() {
   elapsed=$(( EPOCHSECONDS - bgnotify_timestamp ))
   past_threshold=$(( elapsed >= bgnotify_threshold ))
   if (( bgnotify_timestamp > 0 )) && (( past_threshold )); then
-    if [ $(currentWindowId) != "$bgnotify_windowid" ]; then
-      print -n "\a"
-      bgnotify_formatted "$didexit" "$bgnotify_lastcmd" "$elapsed"
-    fi
+    print -n "\a"
+    bgnotify_formatted "$didexit" "$bgnotify_lastcmd" "$elapsed"
   fi
   bgnotify_timestamp=0 #reset it to 0!
 }
